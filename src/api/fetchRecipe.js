@@ -1,5 +1,8 @@
 import axios from 'axios';
 
+// Tạo axios instance riêng cho external APIs (không có Authorization header)
+const externalApi = axios.create();
+
 const SPOONACULAR_API_KEY = 'd923b9ac43dc416698cb64d63eb8746c';
 const CACHE = {}; // Cache để giảm API calls
 
@@ -28,112 +31,116 @@ const stripHtmlTags = (html) => {
   // Remove extra whitespace
   text = text.replace(/\s+/g, ' ').trim();
   
-  // Remove any remaining special characters that look like code
-  text = text.replace(/href=["'][^"']*["']/g, '');
-  text = text.replace(/com\/recipes\/[^\s]*/g, '');
-  
   return text;
 };
 
-// Extract ingredients from TheMealDB format
-const getIngredientsFromMeal = (meal) => {
-  const ingredients = [];
-  for (let i = 1; i <= 20; i++) {
-    const ingredient = meal[`strIngredient${i}`];
-    const measure = meal[`strMeasure${i}`];
-    if (ingredient && ingredient.trim()) {
-      ingredients.push(`${measure} ${ingredient}`.trim());
-    }
-  }
-  return ingredients.join(', ');
+// Format ingredients from Spoonacular format
+const formatIngredients = (extendedIngredients) => {
+  if (!extendedIngredients || !Array.isArray(extendedIngredients)) return '';
+  
+  return extendedIngredients.map(ing => {
+    const amount = ing.measures?.metric?.amount || ing.amount || '';
+    const unit = ing.measures?.metric?.unitShort || ing.unit || '';
+    const name = ing.name || ing.originalName || '';
+    return `${amount} ${unit} ${name}`.trim();
+  }).join('|');
 };
 
-// TheMealDB - PRIMARY API (Free, Unlimited, High Quality Images)
-const fetchFromTheMealDB = async (query) => {
+// Format instructions from Spoonacular format
+const formatInstructions = (analyzedInstructions, rawInstructions) => {
+  if (analyzedInstructions && analyzedInstructions.length > 0 && analyzedInstructions[0].steps) {
+    return analyzedInstructions[0].steps.map(step => step.step).join('|');
+  }
+  
+  if (rawInstructions) {
+    return stripHtmlTags(rawInstructions);
+  }
+  
+  return 'No instructions available';
+};
+
+// Spoonacular API - Search recipes with full information
+const fetchFromSpoonacular = async (query) => {
   try {
-    console.log('🍳 Fetching from TheMealDB for:', query);
+    console.log('🥄 Fetching from Spoonacular for:', query);
     
-    // 1. Search by meal name
-    const searchResponse = await axios.get(
-      `https://www.themealdb.com/api/json/v1/1/search.php?s=${query}`
-    );
+    // Search recipes with full nutrition information
+    const searchUrl = `https://api.spoonacular.com/recipes/complexSearch`;
     
-    let recipes = [];
-    
-    if (searchResponse.data.meals) {
-      recipes = searchResponse.data.meals.map(meal => ({
-        id: meal.idMeal,
-        title: meal.strMeal,
-        image: meal.strMealThumb, // High quality image!
-        category: meal.strCategory,
-        area: meal.strArea, // Cuisine type
-        servings: '4', // TheMealDB doesn't provide, default to 4
-        ingredients: getIngredientsFromMeal(meal),
-        instructions: meal.strInstructions,
-        videoUrl: meal.strYoutube, // BONUS: Video tutorial!
-        recipeId: meal.idMeal,
-        source: 'themealdb'
-      }));
-    }
-    
-    // 2. If not enough results, search by ingredient
-    if (recipes.length < 20) {
-      try {
-        const ingredientResponse = await axios.get(
-          `https://www.themealdb.com/api/json/v1/1/filter.php?i=${query}`
-        );
-        
-        if (ingredientResponse.data.meals) {
-          const mealIds = ingredientResponse.data.meals.slice(0, 100); // Get up to 100
-          
-          // Fetch full details for each meal
-          const detailPromises = mealIds.map(meal => 
-            axios.get(`https://www.themealdb.com/api/json/v1/1/lookup.php?i=${meal.idMeal}`)
-              .catch(() => null)
-          );
-          
-          const details = await Promise.all(detailPromises);
-          const additionalRecipes = details
-            .filter(d => d && d.data.meals)
-            .map(d => {
-              const meal = d.data.meals[0];
-              return {
-                id: meal.idMeal,
-                title: meal.strMeal,
-                image: meal.strMealThumb,
-                category: meal.strCategory,
-                area: meal.strArea,
-                servings: '4',
-                ingredients: getIngredientsFromMeal(meal),
-                instructions: meal.strInstructions,
-                videoUrl: meal.strYoutube,
-                recipeId: meal.idMeal,
-                source: 'themealdb'
-              };
-            });
-          
-          recipes = [...recipes, ...additionalRecipes];
-        }
-      } catch (error) {
-        console.log('Could not fetch by ingredient:', error.message);
+    const response = await externalApi.get(searchUrl, {
+      params: {
+        apiKey: SPOONACULAR_API_KEY,
+        query: query,
+        number: 100, // Get 100 results (max allowed per request)
+        addRecipeInformation: true, // Include full recipe info
+        addRecipeNutrition: true, // Include nutrition data
+        fillIngredients: true, // Include ingredients
+        instructionsRequired: true // Only get recipes with instructions
       }
+    });
+    
+    console.log('📥 Spoonacular Response:', response.status);
+    console.log('📊 Total results:', response.data?.totalResults);
+    
+    if (response.data && response.data.results && response.data.results.length > 0) {
+      console.log('🍽️ Found recipes:', response.data.results.length);
+      
+      const recipes = response.data.results.map(recipe => ({
+        id: recipe.id,
+        title: recipe.title,
+        image: recipe.image || 'https://images.unsplash.com/photo-1495521821757-a1efb6729352?w=400',
+        servings: recipe.servings || 4,
+        readyInMinutes: recipe.readyInMinutes || 30,
+        healthScore: recipe.healthScore || 0,
+        ingredients: formatIngredients(recipe.extendedIngredients || recipe.nutrition?.ingredients),
+        instructions: formatInstructions(recipe.analyzedInstructions, recipe.instructions),
+        // Full nutrition data
+        nutrition: {
+          calories: recipe.nutrition?.nutrients?.find(n => n.name === 'Calories')?.amount || 0,
+          fat: recipe.nutrition?.nutrients?.find(n => n.name === 'Fat')?.amount || 0,
+          carbs: recipe.nutrition?.nutrients?.find(n => n.name === 'Carbohydrates')?.amount || 0,
+          protein: recipe.nutrition?.nutrients?.find(n => n.name === 'Protein')?.amount || 0,
+          fiber: recipe.nutrition?.nutrients?.find(n => n.name === 'Fiber')?.amount || 0,
+          sugar: recipe.nutrition?.nutrients?.find(n => n.name === 'Sugar')?.amount || 0,
+          // Full nutrients array for detailed view
+          nutrients: recipe.nutrition?.nutrients || []
+        },
+        // Diet labels
+        vegetarian: recipe.vegetarian || false,
+        vegan: recipe.vegan || false,
+        glutenFree: recipe.glutenFree || false,
+        dairyFree: recipe.dairyFree || false,
+        veryHealthy: recipe.veryHealthy || false,
+        // Source tracking
+        recipeId: recipe.id,
+        source: 'spoonacular',
+        sourceUrl: recipe.sourceUrl || ''
+      }));
+      
+      console.log('✅ Processed', recipes.length, 'recipes from Spoonacular');
+      return recipes;
     }
     
-    // Remove duplicates based on ID
-    const uniqueRecipes = Array.from(
-      new Map(recipes.map(r => [r.id, r])).values()
-    );
-    
-    console.log('✅ Fetched from TheMealDB:', uniqueRecipes.length, 'unique recipes');
-    return uniqueRecipes;
+    console.log('⚠️ No recipes found in Spoonacular response');
+    return [];
     
   } catch (error) {
-    console.error('❌ TheMealDB error:', error.message);
+    console.error('❌ Spoonacular error:', error.message);
+    if (error.response) {
+      console.error('Response status:', error.response.status);
+      console.error('Response data:', error.response.data);
+      
+      // Check for quota exceeded error
+      if (error.response.status === 402) {
+        console.error('⚠️ API quota exceeded! Daily limit reached.');
+        throw new Error('API_QUOTA_EXCEEDED');
+      }
+    }
     return [];
   }
 };
 
-// Main fetch function - TheMealDB as PRIMARY
+// Main fetch function - Spoonacular as PRIMARY
 const getRecipe = async (query) => {
   // Check cache first
   if (CACHE[query]) {
@@ -142,26 +149,31 @@ const getRecipe = async (query) => {
   }
 
   try {
-    // Use TheMealDB as primary source (FREE, UNLIMITED, HIGH QUALITY IMAGES)
-    const recipes = await fetchFromTheMealDB(query);
+    // Use Spoonacular as primary source (Full data: nutrition, instructions, etc.)
+    const recipes = await fetchFromSpoonacular(query);
     
     if (recipes.length > 0) {
       // Cache kết quả
       CACHE[query] = recipes;
-      console.log('🎉 Returning', recipes.length, 'recipes from TheMealDB');
+      console.log('🎉 Returning', recipes.length, 'recipes from Spoonacular');
       return recipes;
     }
     
-    // If no results from TheMealDB, return empty
+    // If no results, return empty
     console.log('⚠️ No recipes found for:', query);
     return [];
     
   } catch (error) {
     console.error('❌ Error fetching recipe data:', error);
+    
+    // Propagate quota error
+    if (error.message === 'API_QUOTA_EXCEEDED') {
+      throw error;
+    }
+    
     return [];
   }
 };
 
 export default getRecipe;
-export { stripHtmlTags };
-
+export { stripHtmlTags, formatIngredients, formatInstructions };
