@@ -1,10 +1,10 @@
 import axios from 'axios';
 
-// Tạo axios instance riêng cho external APIs (không có Authorization header)
+// Create separate axios instance for external APIs (no Authorization header)
 const externalApi = axios.create();
 
 const SPOONACULAR_API_KEY = 'd923b9ac43dc416698cb64d63eb8746c';
-const CACHE = {}; // Cache để giảm API calls
+const CACHE = {}; // Cache to reduce API calls
 
 // Helper function to strip HTML tags and clean text
 const stripHtmlTags = (html) => {
@@ -153,7 +153,7 @@ const getRecipe = async (query) => {
     const recipes = await fetchFromSpoonacular(query);
     
     if (recipes.length > 0) {
-      // Cache kết quả
+      // Cache the results
       CACHE[query] = recipes;
       console.log('🎉 Returning', recipes.length, 'recipes from Spoonacular');
       return recipes;

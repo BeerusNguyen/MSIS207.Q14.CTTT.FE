@@ -17,6 +17,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { ModalProvider } from './context/ModalContext';
 import ForgotPassword from './ForgotPassword';
 import ResetPassword from './ResetPassword';
+import VerifyEmail from './VerifyEmail';
 import ShoppingListPage from './ShoppingListPage';
 
 
@@ -58,6 +59,7 @@ function AppContent() {
         }/>
         <Route path='/forgot-password' element={<ForgotPassword/>} />
         <Route path='/reset-password' element={<ResetPassword/>} />
+        <Route path='/verify-email' element={<VerifyEmail/>} />
 
         {/* Protected routes */}
         <Route path='/' element={

@@ -43,30 +43,30 @@ export const ModalProvider = ({ children }) => {
   }, []);
 
   // Shorthand methods
-  const showSuccess = useCallback((message, title = 'Thành công!') => {
+  const showSuccess = useCallback((message, title = 'Success!') => {
     showModal({ type: 'success', title, message });
   }, [showModal]);
 
-  const showError = useCallback((message, title = 'Lỗi!') => {
+  const showError = useCallback((message, title = 'Error!') => {
     showModal({ type: 'error', title, message });
   }, [showModal]);
 
-  const showWarning = useCallback((message, title = 'Cảnh báo!') => {
+  const showWarning = useCallback((message, title = 'Warning!') => {
     showModal({ type: 'warning', title, message });
   }, [showModal]);
 
-  const showInfo = useCallback((message, title = 'Thông báo') => {
+  const showInfo = useCallback((message, title = 'Information') => {
     showModal({ type: 'info', title, message });
   }, [showModal]);
 
   const showConfirm = useCallback((message, onConfirm, options = {}) => {
     showModal({
       type: options.type || 'warning',
-      title: options.title || 'Xác nhận',
+      title: options.title || 'Confirm',
       message,
       showCancel: true,
-      confirmText: options.confirmText || 'Xác nhận',
-      cancelText: options.cancelText || 'Hủy',
+      confirmText: options.confirmText || 'Confirm',
+      cancelText: options.cancelText || 'Cancel',
       onConfirm,
       onCancel: options.onCancel,
     });

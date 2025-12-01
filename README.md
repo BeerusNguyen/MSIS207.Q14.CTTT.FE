@@ -1,6 +1,6 @@
 # Recipe Finder - Frontend 🍳
 
-React-based frontend application for Recipe Finder and Meal Planner.
+React-based frontend application for Recipe Finder and Meal Planner with user authentication.
 
 ## 🚀 Tech Stack
 
@@ -8,6 +8,7 @@ React-based frontend application for Recipe Finder and Meal Planner.
 - **React Router** 6.24.1 - Client-side routing
 - **Axios** 1.7.2 - API calls
 - **React Icons** 5.2.1 - Icon library
+- **Context API** - State management (Auth, Modal)
 
 ## 📋 Prerequisites
 
@@ -56,60 +57,121 @@ npm test
 Recipe-Finder-FE/
 ├── public/              # Static files
 │   ├── index.html
-│   ├── favicon.ico
-│   └── images/
+│   └── manifest.json
 ├── src/
-│   ├── api/            # API integration
+│   ├── api/             # API integration
+│   │   ├── favoritesApi.js
+│   │   ├── mealPlanApi.js
+│   │   ├── shoppingListApi.js
 │   │   ├── fetchRecipe.js
-│   │   ├── fetchNutrition.js
-│   │   ├── fetchSaved.js
 │   │   └── ...
-│   ├── components/     # React components
-│   │   ├── Header.jsx
-│   │   ├── Home.jsx
-│   │   ├── Explore.jsx
-│   │   ├── SavedRecipe.jsx
-│   │   └── ...
-│   ├── App.js          # Main app component
-│   ├── index.js        # Entry point
-│   └── index.css       # Global styles
+│   ├── components/      # Reusable components
+│   │   ├── Modal.jsx
+│   │   └── Modal.css
+│   ├── context/         # React Context providers
+│   │   ├── AuthContext.jsx
+│   │   └── ModalContext.jsx
+│   ├── App.js           # Main app with routing
+│   ├── Header.jsx       # Navigation header
+│   ├── Home.jsx         # Landing page
+│   ├── Login.jsx        # Login page
+│   ├── Register.jsx     # Registration page
+│   ├── ForgotPassword.jsx
+│   ├── ResetPassword.jsx
+│   ├── Explore.jsx      # Recipe exploration
+│   ├── SavedRecipe.jsx  # Favorites page
+│   ├── MealPlannerPage.jsx
+│   ├── ShoppingListPage.jsx
+│   ├── ProtectedRoute.jsx # Auth guard
+│   └── index.js         # Entry point
 └── package.json
 ```
 
 ## 🌟 Features
 
-- 🔍 **Recipe Search** - Search recipes from multiple APIs
-- 📖 **Recipe Details** - View detailed recipe information
-- 💾 **Save Recipes** - Save favorite recipes to database
-- 🥗 **Meal Planner** - Plan daily/weekly meals
-- 📊 **Nutrition Info** - View nutritional information
-- 🎯 **Diet Categories** - Low carb, weight gain, etc.
+- 🔐 **User Authentication**
+  - Register/Login with JWT
+  - Forgot/Reset Password via email
+  - Protected routes
+
+- 🔍 **Recipe Search** 
+  - Search recipes from MealDB & Edamam APIs
+  - Filter by category, diet type
+
+- 📖 **Recipe Details** 
+  - View detailed recipe information
+  - Ingredients, instructions, video
+
+- ❤️ **Favorites** 
+  - Save favorite recipes
+  - Persist to user account
+
+- 🗓️ **Meal Planner** 
+  - Plan weekly meals
+  - Organize by meal type (breakfast, lunch, dinner)
+
+- 🛒 **Shopping List** 
+  - Create shopping lists
+  - Check off items
+
+- 🥗 **Diet Categories** 
+  - Low carb recipes
+  - Weight gain recipes
 
 ## 🔌 API Integration
 
 Frontend connects to backend API at `http://localhost:3000`
 
-Key endpoints used:
+### Authentication
+- `POST /api/auth/register` - User registration
+- `POST /api/auth/login` - User login
+- `GET /api/auth/me` - Get current user
+- `POST /api/auth/forgot-password` - Request password reset
+- `POST /api/auth/reset-password` - Reset password
+
+### Recipes
 - `GET /recipes` - Get all recipes
 - `GET /recipes/:id` - Get single recipe
-- `POST /recipes` - Save new recipe
-- `DELETE /recipes/:id` - Delete recipe
-- `GET /recipes/:id/nutrition` - Get nutrition data
+
+### Favorites
+- `GET /api/favorites` - Get user favorites
+- `POST /api/favorites` - Add to favorites
+- `DELETE /api/favorites/:recipeId` - Remove favorite
+
+### Meal Planner
+- `GET /api/meal-plans` - Get meal plans
+- `POST /api/meal-plans` - Add meal
+- `PUT /api/meal-plans/:id` - Update meal
+- `DELETE /api/meal-plans/:id` - Remove meal
+
+### Shopping List
+- `GET /api/shopping-list` - Get items
+- `POST /api/shopping-list` - Add item
+- `PUT /api/shopping-list/:id` - Update item
+- `DELETE /api/shopping-list/:id` - Delete item
+- `DELETE /api/shopping-list` - Clear all
 
 ## 🎨 Pages
 
 - **Home** (`/`) - Landing page
+- **Login** (`/login`) - User login
+- **Register** (`/register`) - User registration
+- **Forgot Password** (`/forgot-password`) - Password reset request
+- **Reset Password** (`/reset-password/:token`) - Password reset form
 - **Explore** (`/explore`) - Browse recipes
-- **Saved Recipes** (`/saved`) - View saved recipes
-- **Meal Planner** (`/meal-planner`) - Plan meals
+- **Recipe Detail** (`/recipe/:id`) - Recipe details
+- **Saved Recipes** (`/saved`) - User's favorites (🔒 Protected)
+- **Meal Planner** (`/meal-planner`) - Weekly planner (🔒 Protected)
+- **Shopping List** (`/shopping-list`) - Shopping list (🔒 Protected)
 - **About** (`/about`) - About page
 
-## 🌐 Environment Variables
+## 🔐 Authentication Flow
 
-Create `.env` file (optional):
-```env
-REACT_APP_API_URL=http://localhost:3000
-```
+1. User registers or logs in
+2. JWT token stored in localStorage
+3. AuthContext provides user state globally
+4. ProtectedRoute guards authenticated pages
+5. Token sent in Authorization header for API calls
 
 ## 📦 Deployment
 
@@ -127,8 +189,7 @@ npm run build
 
 ## 👥 Authors
 
-- Your Name
-- Team Member Name (if applicable)
+- Recipe Finder Team
 
 ## 📄 License
 

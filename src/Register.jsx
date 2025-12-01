@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from './context/AuthContext';
+import axios from 'axios';
 import './Register.css';
+
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3000';
 
 function Register() {
   const navigate = useNavigate();
-  const { register } = useAuth();
   
   const [formData, setFormData] = useState({
     username: '',
@@ -15,6 +16,7 @@ function Register() {
   });
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
+  const [verificationSent, setVerificationSent] = useState(false);
 
   const handleChange = (e) => {
     setFormData({
@@ -76,15 +78,25 @@ function Register() {
         email: formData.email
       });
       
-      await register(formData.username, formData.email, formData.password);
+      const response = await axios.post(`${API_URL}/api/auth/register`, {
+        username: formData.username,
+        email: formData.email,
+        password: formData.password
+      });
       
-      console.log('✅ Registration successful, redirecting...');
-      navigate('/'); // Redirect to home after successful registration
+      console.log('✅ Registration response:', response.data);
+      
+      // Check if verification is required
+      if (response.data.requiresVerification) {
+        setVerificationSent(true);
+      } else {
+        navigate('/login');
+      }
     } catch (err) {
       console.error('❌ Registration error:', err);
       console.error('Error response:', err.response?.data);
       
-      if (err.message.includes('already exists')) {
+      if (err.response?.data?.message?.includes('already exists')) {
         setErrors({ submit: 'Username or email already exists' });
       } else {
         // Show detailed error message
@@ -98,6 +110,34 @@ function Register() {
       setLoading(false);
     }
   };
+
+  // If verification email sent, show success message
+  if (verificationSent) {
+    return (
+      <div className="register-container">
+        <div className="register-box verification-success">
+          <div className="success-icon">📧</div>
+          <h1>Check Your Email!</h1>
+          <p>We have sent a verification email to:</p>
+          <p className="email-highlight">{formData.email}</p>
+          <p>Please click the link in the email to activate your account.</p>
+          
+          <div className="info-box">
+            <h4>📌 Note:</h4>
+            <ul>
+              <li>Verification link expires in 24 hours</li>
+              <li>Check your Spam folder if you don't see the email</li>
+              <li>You must verify your email before logging in</li>
+            </ul>
+          </div>
+          
+          <Link to="/login" className="btn-login">
+            Already verified? Login now
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="register-container">

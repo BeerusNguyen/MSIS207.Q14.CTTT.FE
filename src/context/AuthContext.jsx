@@ -47,6 +47,16 @@ export const AuthProvider = ({ children }) => {
         password
       });
 
+      // Check if email verification is required
+      if (response.data.requiresVerification) {
+        console.log('⚠️ Email verification required for:', response.data.email);
+        return {
+          requiresVerification: true,
+          email: response.data.email,
+          message: response.data.message
+        };
+      }
+
       const { token: newToken, user: userData } = response.data;
       
       // Save token
@@ -81,6 +91,17 @@ export const AuthProvider = ({ children }) => {
 
       console.log('📥 Registration response:', response.data);
 
+      // Check if email verification is required (new flow)
+      if (response.data.requiresVerification) {
+        console.log('✅ Registration successful, email verification required');
+        return {
+          success: true,
+          requiresVerification: true,
+          message: response.data.message
+        };
+      }
+
+      // Old flow (if verification is not required)
       const { token: newToken, user: userData } = response.data;
       
       // Save token
