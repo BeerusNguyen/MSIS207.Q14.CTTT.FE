@@ -4,7 +4,8 @@ import { useAuth } from './context/AuthContext';
 import axios from 'axios';
 import './Login.css';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3000';
+// Dán cứng link Render vào đây (bỏ dấu / ở cuối)
+const API_URL = 'https://recipe-backend-xu20.onrender.com';
 
 function Login() {
   const navigate = useNavigate();
