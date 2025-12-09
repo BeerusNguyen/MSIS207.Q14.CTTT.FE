@@ -1,6 +1,10 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import axios from 'axios';
 
+// --- CẤU HÌNH ĐƯỜNG DẪN API (QUAN TRỌNG) ---
+// Thay thế localhost bằng link Render của bạn
+const API_URL = 'https://recipe-backend-xu20.onrender.com';
+
 const AuthContext = createContext(null);
 
 export const useAuth = () => {
@@ -29,7 +33,8 @@ export const AuthProvider = ({ children }) => {
 
   const loadUser = async () => {
     try {
-      const response = await axios.get('http://localhost:3000/api/auth/me');
+      // SỬA: Dùng API_URL thay vì localhost
+      const response = await axios.get(`${API_URL}/api/auth/me`);
       setUser(response.data.user);
     } catch (error) {
       console.error('Failed to load user:', error);
@@ -42,7 +47,8 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (username, password) => {
     try {
-      const response = await axios.post('http://localhost:3000/api/auth/login', {
+      // SỬA: Dùng API_URL thay vì localhost
+      const response = await axios.post(`${API_URL}/api/auth/login`, {
         username,
         password
       });
@@ -79,11 +85,12 @@ export const AuthProvider = ({ children }) => {
   const register = async (username, email, password) => {
     try {
       console.log('📤 Sending registration request:', {
-        url: 'http://localhost:3000/api/auth/register',
+        url: `${API_URL}/api/auth/register`,
         data: { username, email, password: '***' }
       });
 
-      const response = await axios.post('http://localhost:3000/api/auth/register', {
+      // SỬA: Dùng API_URL thay vì localhost
+      const response = await axios.post(`${API_URL}/api/auth/register`, {
         username,
         email,
         password
